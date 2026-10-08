@@ -1,7 +1,7 @@
 # RideShare — Java 4 · Neon dhe PostgreSQL
 
 Ruaje këtë skedar si java-04.md pranë README, jashtë aplikacioni/.
-Plotëso të gjitha përgjigjet; hiqi shenjat [PLOTËSO].
+Plotëso të gjitha përgjigjet.
 Mos vendos DATABASE_URL, pamje të kredencialeve ose të dhëna reale.
 
 ## Çfarë ndërtova
