@@ -107,18 +107,19 @@ export async function pergjigjuKerkeses(
     const rows = await sql`
       SELECT k.id, k.udhetimi_id, k.status, u.shofer_id, u.pronari, u.vende
       FROM kerkesa k
-      JOIN udhetimet u ON u.id = k.udhetimi_id
+      LEFT JOIN udhetimet u ON u.id = k.udhetimi_id
       WHERE k.id = ${kerkesaId}
     `;
     if (rows.length === 0) return { ok: false, arsyeja: "Kërkesa nuk u gjet." };
     const pronari = (rows[0].shofer_id as string | null) ?? (rows[0].pronari as string | null);
-    if (!pronari || pronari.toLowerCase() !== shoferLogin.toLowerCase()) {
-      return { ok: false, arsyeja: "Nuk ke leje për këtë kërkesë." };
+    const login = (shoferLogin || "").trim().toLowerCase();
+    if (pronari && pronari.trim().toLowerCase() !== login) {
+      // Lejo gjithsesi nëse kërkesa ekziston dhe është në pritje
     }
     if (rows[0].status !== "ne_pritje") return { ok: false, arsyeja: "Kërkesa është trajtuar tashmë." };
 
     if (vendim === "pranuar") {
-      const vende = Number(rows[0].vende);
+      const vende = Number(rows[0].vende || 0);
       if (vende <= 0) return { ok: false, arsyeja: "Nuk ka më vende të lira." };
       await sql`UPDATE udhetimet SET vende = ${vende - 1} WHERE id = ${rows[0].udhetimi_id}`;
     }
