@@ -35,7 +35,7 @@ export default async function Panel() {
   return (
     <main>
       <Link href="/">← Kthehu te lista publike</Link>
-      <h1>Paneli</h1>
+      <h1>Paneli i shoferit</h1>
       <Hyrja />
 
       {!session ? (
@@ -52,16 +52,49 @@ export default async function Panel() {
         </p>
       )}
 
-      <h2>Udhëtimet</h2>
-      <ul>
+      <h2>Udhëtimet e disponueshme</h2>
+      <div
+        style={{
+          display: "grid",
+          gap: "0.75rem",
+          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+          marginTop: "1rem",
+        }}
+      >
         {udhetimet.map((u) => (
-          <li key={u.id}>
-            ID {u.id}: {u.nisja} → {u.destinacioni} · {u.ora}
-          </li>
+          <article
+            key={u.id}
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: "12px",
+              padding: "1rem",
+              background: "#fff",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+              <strong>ID {u.id}</strong>
+              <span>Ora: {u.ora}</span>
+            </div>
+            <div>
+              {u.nisja} → {u.destinacioni}
+            </div>
+            <div style={{ fontSize: "0.9rem", opacity: 0.8, marginTop: "0.3rem" }}>
+              Vendtakimi: {u.vendtakimi}
+            </div>
+            <div style={{ fontSize: "0.9rem", opacity: 0.8 }}>
+              Vende të lira: {u.vende}
+            </div>
+          </article>
         ))}
-      </ul>
+      </div>
 
-      {session ? <FormularOres /> : null}
+      {session && roli === "shofer" ? (
+        <FormularOres udhetimet={udhetimet} />
+      ) : session ? (
+        <p style={{ marginTop: "1rem", fontSize: "0.95rem", opacity: 0.8 }}>
+          Vetëm përdoruesit me rol <strong>shofer</strong> mund të ndryshojnë orën e udhëtimit.
+        </p>
+      ) : null}
     </main>
   );
 }
