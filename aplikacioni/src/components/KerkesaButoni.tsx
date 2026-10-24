@@ -48,8 +48,7 @@ export function KerkesaButoni({ id, vende }: { id: string; vende: number }) {
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.sukses) {
-          setMesazhi("Kërkesa u dërgua me sukses.");
-          setTimeout(() => router.push(`/udhetimi/${id}/kerkesa`), 700);
+          router.push(`/udhetimi/${id}/kerkesa`);
           return;
         }
         setMesazhi(data.gabim || "Nuk u dërgua dot kërkesa.");
