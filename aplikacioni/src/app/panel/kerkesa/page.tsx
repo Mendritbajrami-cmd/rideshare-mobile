@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { merRolin } from "@/lib/lejet";
 import { merrKerkesatPerShoferin } from "@/lib/kerkesa";
 import { Hyrja } from "@/components/Hyrja";
 import { VeprimKerkese } from "./VeprimKerkese";
@@ -15,15 +14,6 @@ export default async function PanelKerkesat() {
     (session?.user as { login?: string } | undefined)?.login ??
     session?.user?.name ??
     "";
-
-  let roli = "";
-  if (session?.user && login) {
-    try {
-      roli = await merRolin(login);
-    } catch {
-      roli = "";
-    }
-  }
 
   let kerkesa: Awaited<ReturnType<typeof merrKerkesatPerShoferin>> = [];
   if (session?.user && login) {
@@ -42,9 +32,13 @@ export default async function PanelKerkesat() {
 
       {!session ? (
         <p>Hyr me GitHub për të parë kërkesat.</p>
-      ) : kerkesa.length === 0 ? (
-        <p>Nuk ka kërkesa për momentin. (login: {login})</p>
-      ) : kerkesa.length === 0 ? null : (
+      ) : (
+        <>
+          <p style={{ fontSize: "0.85rem", opacity: 0.6 }}>I kyçur si: {login}</p>
+          {kerkesa.length === 0 ? <p>Nuk ka kërkesa për momentin.</p> : null}
+        </>
+      )}
+      {session && kerkesa.length > 0 ? (
         <div style={{ display: "grid", gap: "0.9rem", marginTop: "1rem" }}>
           {kerkesa.map((k) => (
             <article
@@ -91,7 +85,7 @@ export default async function PanelKerkesat() {
             </article>
           ))}
         </div>
-      )}
+      ) : null}
     </main>
   );
 }
