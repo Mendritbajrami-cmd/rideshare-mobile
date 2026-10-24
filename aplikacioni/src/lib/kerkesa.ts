@@ -65,6 +65,8 @@ export async function merrKerkesatPerShoferin(
     JOIN udhetimet u ON u.id = k.udhetimi_id
     WHERE LOWER(TRIM(COALESCE(u.shofer_id, ''))) = LOWER(TRIM(${shoferLogin}))
        OR LOWER(TRIM(COALESCE(u.pronari, ''))) = LOWER(TRIM(${shoferLogin}))
+       OR LOWER(TRIM(COALESCE(u.shofer_id, ''))) LIKE LOWER(TRIM(${shoferLogin}))
+       OR LOWER(TRIM(${shoferLogin})) LIKE LOWER(TRIM(COALESCE(u.shofer_id, '')))
     ORDER BY k.krijuar_ne DESC
   `;
   return rows as any;
