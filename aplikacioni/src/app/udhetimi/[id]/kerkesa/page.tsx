@@ -38,10 +38,12 @@ export default async function Kerkesa({
           <h1>{ngaOffline ? "Në pritje (ruajtur)" : "Simulim: Në pritje"}</h1>
           {ngaOffline ? (
             <>
-              <p role="status">
+              <h1>Simulim: Në pritje</h1>
+              <p>Kërkesa për {udhetim.nisja} nuk është dërguar te shoferi.</p>
+              <p>Ruajtjen dhe konfirmimin real do t’i shtojmë më vonë.</p>
+              <p role="status" style={{ marginTop: "1rem", fontWeight: 600 }}>
                 Kërkesa u ruajt në pajisjen tënde. Do të dërgohet automatikisht kur të rikthehet lidhja me internet.
               </p>
-              <p>Shoferi do ta shohë kërkesën pas lidhjes. Deri atëherë, kjo është në pritje.</p>
             </>
           ) : (
             <>
