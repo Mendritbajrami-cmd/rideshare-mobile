@@ -58,15 +58,14 @@ export async function merrKerkesatPerShoferin(
   shoferLogin: string
 ): Promise<(Kerkesa & { nisja: string; destinacioni: string; ora: string })[]> {
   const sql = getSql();
-  const login = (shoferLogin || "").trim();
+  const login = (shoferLogin || "").trim().toLowerCase();
   const rows = await sql`
     SELECT k.id, k.udhetimi_id, k.udhetari_login, k.status, k.krijuar_ne, k.perditesuar_ne,
            u.nisja, u.destinacioni, u.ora
     FROM kerkesa k
     JOIN udhetimet u ON u.id = k.udhetimi_id
-    WHERE LOWER(TRIM(COALESCE(u.shofer_id, ''))) = LOWER(${login})
-       OR LOWER(TRIM(COALESCE(u.pronari, ''))) = LOWER(${login})
-       OR LOWER(TRIM(COALESCE(u.shofer_id, ''))) = LOWER(TRIM(COALESCE(${login}, '')))
+    WHERE LOWER(TRIM(COALESCE(u.shofer_id, ''))) = ${login}
+       OR LOWER(TRIM(COALESCE(u.pronari, ''))) = ${login}
     ORDER BY k.krijuar_ne DESC
   `;
   return rows as any;
