@@ -35,6 +35,10 @@ export default async function Detajet({
           Kërko vend
         </Link>
       ) : <button className="action" disabled>Nuk ka vende të lira</button>}
+      <hr style={{ margin: "1.5rem 0" }} />
+      <Link className="action" href={`/udhetimi/${id}/ndrysho`}>
+        🕐 Ndrysho orën (vetëm shoferi)
+      </Link>
     </main>
   );
 }
