@@ -44,7 +44,7 @@ export default async function PanelKerkesat() {
         <p>Hyr me GitHub për të parë kërkesat.</p>
       ) : kerkesa.length === 0 ? (
         <p>Nuk ka kërkesa për momentin. (login: {login})</p>
-      ) : (
+      ) : kerkesa.length === 0 ? null : (
         <div style={{ display: "grid", gap: "0.9rem", marginTop: "1rem" }}>
           {kerkesa.map((k) => (
             <article
