@@ -23,6 +23,11 @@ export default async function Home() {
     <main>
       <h1>RideShare · Udhëtimet për AAB</h1>
       <p>Burimi: Neon · të dhëna fiktive për ushtrime</p>
+      <p>
+        <a className="action" href="/panel">
+          Paneli i shoferit
+        </a>
+      </p>
       {udhetimet.length === 0 ? (
         <p>Nuk ka udhëtime për momentin.</p>
       ) : (

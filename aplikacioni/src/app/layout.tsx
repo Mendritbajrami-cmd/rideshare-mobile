@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { getServerSession } from "next-auth";
 import "./globals.css";
-import { SessionProvider } from "next-auth/react";
-import { ButoiHyrjes } from "@/components/ButoiHyrjes";
+import { Hyrja } from "@/components/Hyrja";
+import { OfruesiSesionit } from "@/components/OfruesiSesionit";
+import Pwa from "@/components/Pwa";
+import { authOptions } from "@/lib/auth";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,17 +23,19 @@ export const metadata: Metadata = {
   description: "Aplikacioni i ndarjes së udhëtimeve për AAB",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const session = await getServerSession(authOptions);
   return (
     <html lang="sq" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
-        <SessionProvider>
+        <OfruesiSesionit session={session}>
           <header style={{ padding: "0.75rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #eee" }}>
             <strong>RideShare</strong>
-            <ButoiHyrjes />
+            <Hyrja />
           </header>
           {children}
-        </SessionProvider>
+          <Pwa />
+        </OfruesiSesionit>
       </body>
     </html>
   );

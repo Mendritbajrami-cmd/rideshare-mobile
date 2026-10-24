@@ -35,9 +35,13 @@ export async function ndryshoOren(
   githubLogin: string
 ): Promise<void> {
   const sql = getSql();
-  const rows = await sql`SELECT pronari FROM udhetimet WHERE id = ${id}`;
+  const rows = await sql`
+    SELECT pronari, shofer_id FROM udhetimet WHERE id = ${id}
+  `;
   if (rows.length === 0) throw new Error("nuk_ekziston");
-  const pronari = rows[0].pronari as string | null;
+  const pronari =
+    (rows[0].shofer_id as string | null) ??
+    (rows[0].pronari as string | null);
   if (!pronari || pronari !== githubLogin) throw new Error("jo_pronar");
   await sql`UPDATE udhetimet SET ora = ${oraRe} WHERE id = ${id}`;
 }
