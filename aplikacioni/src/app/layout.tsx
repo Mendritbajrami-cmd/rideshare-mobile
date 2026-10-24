@@ -5,6 +5,7 @@ import "./globals.css";
 import { Hyrja } from "@/components/Hyrja";
 import { OfruesiSesionit } from "@/components/OfruesiSesionit";
 import Pwa from "@/components/Pwa";
+import PerpunuesKerkesave from "@/components/PerpunuesKerkesave";
 import { authOptions } from "@/lib/auth";
 
 
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           </header>
           {children}
           <Pwa />
+          <PerpunuesKerkesave />
         </OfruesiSesionit>
       </body>
     </html>

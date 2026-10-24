@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { gjejUdhetimin } from "@/lib/udhetimet";
+import { KerkesaButoni } from "@/components/KerkesaButoni";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -30,11 +31,7 @@ export default async function Detajet({
       <p>Ora: {udhetim.ora}</p>
       <p>Vendtakimi: {udhetim.vendtakimi}</p>
       <p>Vende të lira: {udhetim.vende}</p>
-      {udhetim.vende > 0 ? (
-        <Link className="action" href={`/udhetimi/${id}/kerkesa`}>
-          Kërko vend
-        </Link>
-      ) : <button className="action" disabled>Nuk ka vende të lira</button>}
+      <KerkesaButoni id={id} vende={udhetim.vende} />
       <hr style={{ margin: "1.5rem 0" }} />
       <Link className="action" href={`/udhetimi/${id}/ndrysho`}>
         🕐 Ndrysho orën (vetëm shoferi)

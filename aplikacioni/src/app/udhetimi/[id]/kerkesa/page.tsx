@@ -7,8 +7,13 @@ export const revalidate = 0;
 
 export default async function Kerkesa({
   params,
-}: { params: Promise<{ id: string }> }) {
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ offline?: string }>;
+}) {
   const { id } = await params;
+  const { offline } = await searchParams;
   let udhetim;
   try {
     udhetim = await gjejUdhetimin(id);
@@ -23,16 +28,31 @@ export default async function Kerkesa({
   }
   if (!udhetim) notFound();
 
+  const ngaOffline = offline === "1";
+
   return (
     <main>
       <Link href={`/udhetimi/${id}`}>← Kthehu te detajet</Link>
       {udhetim.vende > 0 ? (
         <>
-          <h1>Simulim: Në pritje</h1>
-          <p>Kërkesa për {udhetim.nisja} nuk është dërguar te shoferi.</p>
-          <p>Ruajtjen dhe konfirmimin real do t’i shtojmë më vonë.</p>
+          <h1>{ngaOffline ? "Në pritje (ruajtur)" : "Simulim: Në pritje"}</h1>
+          {ngaOffline ? (
+            <>
+              <p role="status">
+                Kërkesa u ruajt në pajisjen tënde. Do të dërgohet automatikisht kur të rikthehet lidhja me internet.
+              </p>
+              <p>Shoferi do ta shohë kërkesën pas lidhjes. Deri atëherë, kjo është në pritje.</p>
+            </>
+          ) : (
+            <>
+              <p>Kërkesa për {udhetim.nisja} nuk është dërguar te shoferi.</p>
+              <p>Ruajtjen dhe konfirmimin real do t’i shtojmë më vonë.</p>
+            </>
+          )}
         </>
-      ) : <h1>Nuk ka vende të lira.</h1>}
+      ) : (
+        <h1>Nuk ka vende të lira.</h1>
+      )}
     </main>
   );
 }
