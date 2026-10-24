@@ -65,23 +65,24 @@ export default async function Panel() {
           <article
             key={u.id}
             style={{
-              border: "1px solid #e5e7eb",
+              border: "1px solid #d1d5db",
               borderRadius: "12px",
               padding: "1rem",
-              background: "#fff",
+              background: "linear-gradient(180deg, #ffffff 0%, #f9fafb 100%)",
+              boxShadow: "0 8px 24px rgba(15, 23, 42, 0.06)",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
-              <strong>ID {u.id}</strong>
-              <span>Ora: {u.ora}</span>
+              <strong style={{ color: "#111827" }}>ID {u.id}</strong>
+              <span style={{ fontWeight: 600, color: "#1d4ed8" }}>Ora: {u.ora}</span>
             </div>
-            <div>
+            <div style={{ fontSize: "1.05rem", fontWeight: 600, color: "#111827" }}>
               {u.nisja} → {u.destinacioni}
             </div>
-            <div style={{ fontSize: "0.9rem", opacity: 0.8, marginTop: "0.3rem" }}>
+            <div style={{ fontSize: "0.9rem", color: "#4b5563", marginTop: "0.3rem" }}>
               Vendtakimi: {u.vendtakimi}
             </div>
-            <div style={{ fontSize: "0.9rem", opacity: 0.8 }}>
+            <div style={{ fontSize: "0.9rem", color: "#4b5563" }}>
               Vende të lira: {u.vende}
             </div>
           </article>
@@ -91,7 +92,7 @@ export default async function Panel() {
       {session && roli === "shofer" ? (
         <FormularOres udhetimet={udhetimet} />
       ) : session ? (
-        <p style={{ marginTop: "1rem", fontSize: "0.95rem", opacity: 0.8 }}>
+        <p style={{ marginTop: "1rem", fontSize: "0.95rem", color: "#4b5563" }}>
           Vetëm përdoruesit me rol <strong>shofer</strong> mund të ndryshojnë orën e udhëtimit.
         </p>
       ) : null}
