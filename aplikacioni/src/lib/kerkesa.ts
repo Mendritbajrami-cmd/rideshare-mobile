@@ -63,7 +63,9 @@ export async function merrKerkesatPerShoferin(
            u.nisja, u.destinacioni, u.ora
     FROM kerkesa k
     JOIN udhetimet u ON u.id = k.udhetimi_id
-    WHERE (u.shofer_id = ${shoferLogin} OR u.pronari = ${shoferLogin})
+    WHERE LOWER(COALESCE(u.shofer_id, '')) = LOWER(${shoferLogin})
+       OR LOWER(COALESCE(u.pronari, '')) = LOWER(${shoferLogin})
+       OR LOWER(COALESCE(u.shofer_id, '')) = LOWER(COALESCE(${shoferLogin}, ''))
     ORDER BY k.krijuar_ne DESC
   `;
   return rows as any;
@@ -99,7 +101,9 @@ export async function pergjigjuKerkeses(
     `;
     if (rows.length === 0) return { ok: false, arsyeja: "Kërkesa nuk u gjet." };
     const pronari = (rows[0].shofer_id as string | null) ?? (rows[0].pronari as string | null);
-    if (!pronari || pronari !== shoferLogin) return { ok: false, arsyeja: "Nuk ke leje për këtë kërkesë." };
+    if (!pronari || pronari.toLowerCase() !== shoferLogin.toLowerCase()) {
+      return { ok: false, arsyeja: "Nuk ke leje për këtë kërkesë." };
+    }
     if (rows[0].status !== "ne_pritje") return { ok: false, arsyeja: "Kërkesa është trajtuar tashmë." };
 
     if (vendim === "pranuar") {

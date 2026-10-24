@@ -26,7 +26,7 @@ export default async function PanelKerkesat() {
   }
 
   let kerkesa: Awaited<ReturnType<typeof merrKerkesatPerShoferin>> = [];
-  if (session?.user && login && roli === "shofer") {
+  if (session?.user && login) {
     try {
       kerkesa = await merrKerkesatPerShoferin(login);
     } catch {
@@ -42,8 +42,6 @@ export default async function PanelKerkesat() {
 
       {!session ? (
         <p>Hyr me GitHub për të parë kërkesat.</p>
-      ) : roli !== "shofer" ? (
-        <p>Vetëm shoferët mund të pranojnë ose refuzojnë kërkesat.</p>
       ) : kerkesa.length === 0 ? (
         <p>Nuk ka kërkesa për momentin.</p>
       ) : (
