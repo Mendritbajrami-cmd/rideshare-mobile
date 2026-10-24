@@ -63,9 +63,8 @@ export async function merrKerkesatPerShoferin(
            u.nisja, u.destinacioni, u.ora
     FROM kerkesa k
     JOIN udhetimet u ON u.id = k.udhetimi_id
-    WHERE LOWER(COALESCE(u.shofer_id, '')) = LOWER(${shoferLogin})
-       OR LOWER(COALESCE(u.pronari, '')) = LOWER(${shoferLogin})
-       OR LOWER(COALESCE(u.shofer_id, '')) = LOWER(COALESCE(${shoferLogin}, ''))
+    WHERE LOWER(TRIM(COALESCE(u.shofer_id, ''))) = LOWER(TRIM(${shoferLogin}))
+       OR LOWER(TRIM(COALESCE(u.pronari, ''))) = LOWER(TRIM(${shoferLogin}))
     ORDER BY k.krijuar_ne DESC
   `;
   return rows as any;
