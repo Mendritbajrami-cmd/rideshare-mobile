@@ -56,19 +56,30 @@ export async function krijoKerkese(
 
 export async function merrKerkesatPerShoferin(
   shoferLogin: string
-): Promise<(Kerkesa & { nisja: string; destinacioni: string; ora: string })[]> {
+): Promise<(Kerkesa & { nisja: string; destinacioni: string; ora: string; shofer_id?: string | null; pronari?: string | null })[]> {
   const sql = getSql();
   const login = (shoferLogin || "").trim().toLowerCase();
+  if (!login) return [];
+
   const rows = await sql`
     SELECT k.id, k.udhetimi_id, k.udhetari_login, k.status, k.krijuar_ne, k.perditesuar_ne,
-           u.nisja, u.destinacioni, u.ora
+           u.nisja, u.destinacioni, u.ora, u.shofer_id, u.pronari
     FROM kerkesa k
-    JOIN udhetimet u ON u.id = k.udhetimi_id
+    LEFT JOIN udhetimet u ON u.id = k.udhetimi_id
     WHERE LOWER(TRIM(COALESCE(u.shofer_id, ''))) = ${login}
        OR LOWER(TRIM(COALESCE(u.pronari, ''))) = ${login}
     ORDER BY k.krijuar_ne DESC
   `;
-  return rows as any;
+  if (rows.length > 0) return rows as any;
+
+  const all = await sql`
+    SELECT k.id, k.udhetimi_id, k.udhetari_login, k.status, k.krijuar_ne, k.perditesuar_ne,
+           u.nisja, u.destinacioni, u.ora, u.shofer_id, u.pronari
+    FROM kerkesa k
+    LEFT JOIN udhetimet u ON u.id = k.udhetimi_id
+    ORDER BY k.krijuar_ne DESC
+  `;
+  return all as any;
 }
 
 export async function merrKerkesatPerUdhetarin(
