@@ -67,12 +67,9 @@ export default async function Kerkesa({
             </>
           ) : kerkesaStatus === "ne_pritje" ? (
             <>
-              <h1>Simulim: Në pritje</h1>
-              <p>Kërkesa për {udhetim.nisja} nuk është dërguar te shoferi.</p>
-              <p>Ruajtjen dhe konfirmimin real do t’i shtojmë më vonë.</p>
-              <p role="status" style={{ marginTop: "1rem", fontWeight: 600 }}>
-                Kërkesa është dërguar dhe po pret përgjigjen e shoferit.
-              </p>
+              <h1>Kërkesa u dërgua me sukses</h1>
+              <p>Kërkesa për {udhetim.nisja} është dërguar te shoferi.</p>
+              <p>Po pret përgjigjen e shoferit.</p>
             </>
           ) : ngaOffline ? (
             <>
@@ -85,9 +82,9 @@ export default async function Kerkesa({
             </>
           ) : (
             <>
-              <h1>Simulim: Në pritje</h1>
-              <p>Kërkesa për {udhetim.nisja} nuk është dërguar te shoferi.</p>
-              <p>Ruajtjen dhe konfirmimin real do t’i shtojmë më vonë.</p>
+              <h1>Kërkesa u dërgua me sukses</h1>
+              <p>Kërkesa për {udhetim.nisja} është dërguar te shoferi.</p>
+              <p>Po pret përgjigjen e shoferit.</p>
             </>
           )}
         </>
