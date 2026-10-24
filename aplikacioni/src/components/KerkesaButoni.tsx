@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 export function KerkesaButoni({ id, vende }: { id: string; vende: number }) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [online, setOnline] = useState(true);
   const [mesazhi, setMesazhi] = useState("");
   const [dukeDerguar, setDukeDerguar] = useState(false);
@@ -25,13 +27,50 @@ export function KerkesaButoni({ id, vende }: { id: string; vende: number }) {
     };
   }, []);
 
-  function kerkoVend() {
+  async function kerkoVend() {
     if (vende <= 0) return;
     setMesazhi("");
+    setDukeDerguar(true);
+
+    if (!session?.user) {
+      setMesazhi("Hyr me GitHub që të dërgosh kërkesë për vend.");
+      setDukeDerguar(false);
+      setTimeout(() => router.push(`/udhetimi/${id}/kerkesa`), 800);
+      return;
+    }
 
     if (online) {
-      router.push(`/udhetimi/${id}/kerkesa`);
-      return;
+      try {
+        const res = await fetch("/api/kerkesa", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ udhetimiId: id }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.sukses) {
+          setMesazhi("Kërkesa u dërgua me sukses.");
+          setTimeout(() => router.push(`/udhetimi/${id}/kerkesa`), 700);
+          return;
+        }
+        setMesazhi(data.gabim || "Nuk u dërgua dot kërkesa.");
+        setTimeout(() => router.push(`/udhetimi/${id}/kerkesa`), 900);
+        return;
+      } catch {
+        setMesazhi("Kërkesa do të dërgohet automatikisht kur të rikthehet lidhja me internet.");
+        try {
+          const key = "rideshare_pending_requests";
+          const existing = JSON.parse(localStorage.getItem(key) || "[]") as Array<{ id: string; createdAt: string }>;
+          const already = existing.some((x) => x.id === id);
+          if (!already) {
+            existing.push({ id, createdAt: new Date().toISOString() });
+            localStorage.setItem(key, JSON.stringify(existing));
+          }
+        } catch {}
+        setTimeout(() => router.push(`/udhetimi/${id}/kerkesa?offline=1`), 900);
+        return;
+      } finally {
+        setDukeDerguar(false);
+      }
     }
 
     try {
@@ -51,6 +90,8 @@ export function KerkesaButoni({ id, vende }: { id: string; vende: number }) {
       setTimeout(() => {
         router.push(`/udhetimi/${id}/kerkesa?offline=1`);
       }, 900);
+    } finally {
+      setDukeDerguar(false);
     }
   }
 
@@ -58,7 +99,7 @@ export function KerkesaButoni({ id, vende }: { id: string; vende: number }) {
     <div style={{ marginTop: "1rem" }}>
       {vende > 0 ? (
         <button className="action" type="button" onClick={kerkoVend} disabled={dukeDerguar}>
-          {online ? "Kërko vend" : "Kërko vend (pa internet)"}
+          {dukeDerguar ? "Duke dërguar..." : online ? "Kërko vend" : "Kërko vend (pa internet)"}
         </button>
       ) : (
         <button className="action" disabled>

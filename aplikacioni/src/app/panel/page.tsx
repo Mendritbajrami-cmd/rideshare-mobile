@@ -90,7 +90,14 @@ export default async function Panel() {
       </div>
 
       {session && roli === "shofer" ? (
-        <FormularOres udhetimet={udhetimet} />
+        <>
+          <div style={{ marginTop: "1.25rem" }}>
+            <Link className="action" href="/panel/kerkesa">
+              Shiko kërkesat për udhëtimet
+            </Link>
+          </div>
+          <FormularOres udhetimet={udhetimet} />
+        </>
       ) : session ? (
         <p style={{ marginTop: "1rem", fontSize: "0.95rem", color: "#4b5563" }}>
           Vetëm përdoruesit me rol <strong>shofer</strong> mund të ndryshojnë orën e udhëtimit.

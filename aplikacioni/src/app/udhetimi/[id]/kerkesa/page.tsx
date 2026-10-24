@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { gjejUdhetimin } from "@/lib/udhetimet";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { merrKerkesatPerUdhetarin } from "@/lib/kerkesa";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -14,6 +17,10 @@ export default async function Kerkesa({
 }) {
   const { id } = await params;
   const { offline } = await searchParams;
+  const session = await getServerSession(authOptions);
+  const udhetariLogin =
+    (session?.user as { login?: string } | undefined)?.login ?? session?.user?.name ?? "";
+
   let udhetim;
   try {
     udhetim = await gjejUdhetimin(id);
@@ -30,13 +37,44 @@ export default async function Kerkesa({
 
   const ngaOffline = offline === "1";
 
+  let kerkesaStatus: string | null = null;
+  if (session?.user && udhetariLogin) {
+    try {
+      const lista = await merrKerkesatPerUdhetarin(udhetariLogin);
+      const gjetur = lista.find((k) => k.udhetimi_id === id);
+      if (gjetur) kerkesaStatus = gjetur.status;
+    } catch {
+      kerkesaStatus = null;
+    }
+  }
+
   return (
     <main>
       <Link href={`/udhetimi/${id}`}>← Kthehu te detajet</Link>
       {udhetim.vende > 0 ? (
         <>
-          <h1>{ngaOffline ? "Në pritje (ruajtur)" : "Simulim: Në pritje"}</h1>
-          {ngaOffline ? (
+          {kerkesaStatus === "pranuar" ? (
+            <>
+              <h1>Kërkesa u pranua</h1>
+              <p>Kërkesa jote për {udhetim.nisja} → {udhetim.destinacioni} u pranua nga shoferi.</p>
+              <p>Kontakto shoferin për detaje shtesë.</p>
+            </>
+          ) : kerkesaStatus === "refuzuar" ? (
+            <>
+              <h1>Kërkesa u refuzua</h1>
+              <p>Kërkesa jote për {udhetim.nisja} → {udhetim.destinacioni} u refuzua nga shoferi.</p>
+              <p>Mund të zgjedhësh një udhëtim tjetër nga lista.</p>
+            </>
+          ) : kerkesaStatus === "ne_pritje" ? (
+            <>
+              <h1>Simulim: Në pritje</h1>
+              <p>Kërkesa për {udhetim.nisja} nuk është dërguar te shoferi.</p>
+              <p>Ruajtjen dhe konfirmimin real do t’i shtojmë më vonë.</p>
+              <p role="status" style={{ marginTop: "1rem", fontWeight: 600 }}>
+                Kërkesa është dërguar dhe po pret përgjigjen e shoferit.
+              </p>
+            </>
+          ) : ngaOffline ? (
             <>
               <h1>Simulim: Në pritje</h1>
               <p>Kërkesa për {udhetim.nisja} nuk është dërguar te shoferi.</p>
@@ -47,6 +85,7 @@ export default async function Kerkesa({
             </>
           ) : (
             <>
+              <h1>Simulim: Në pritje</h1>
               <p>Kërkesa për {udhetim.nisja} nuk është dërguar te shoferi.</p>
               <p>Ruajtjen dhe konfirmimin real do t’i shtojmë më vonë.</p>
             </>

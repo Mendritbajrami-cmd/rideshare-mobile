@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 export default function PerpunuesKerkesave() {
+  const { data: session } = useSession();
+
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!session?.user) return;
 
     async function perpunoj() {
       try {
@@ -14,10 +18,27 @@ export default function PerpunuesKerkesave() {
         const lista = JSON.parse(raw) as Array<{ id: string; createdAt: string }>;
         if (!Array.isArray(lista) || lista.length === 0) return;
 
-        // Për versionin aktual të aplikacionit nuk ekziston endpoint për dërgimin e kërkesës;
-        // ndaj thjesht i ruajmë dhe i pastrmë kur lidhja rikthehet për të përmbushur kërkesën.
-        // Mund të shtohet POST /api/kerkesa më vonë.
-        localStorage.removeItem(key);
+        const teMbetura: Array<{ id: string; createdAt: string }> = [];
+        for (const kerkese of lista) {
+          try {
+            const res = await fetch("/api/kerkesa", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ udhetimiId: kerkese.id }),
+            });
+            if (!res.ok) {
+              teMbetura.push(kerkese);
+            }
+            // nëse ok, fshihet
+          } catch {
+            teMbetura.push(kerkese);
+          }
+        }
+        if (teMbetura.length === 0) {
+          localStorage.removeItem(key);
+        } else {
+          localStorage.setItem(key, JSON.stringify(teMbetura));
+        }
       } catch {
         // injoro
       }
@@ -31,7 +52,7 @@ export default function PerpunuesKerkesave() {
     }
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
-  }, []);
+  }, [session]);
 
   return null;
 }
