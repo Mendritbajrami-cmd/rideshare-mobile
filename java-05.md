@@ -1,51 +1,23 @@
-# RideShare — Java 5 · Hyrja dhe Lejet
-
-Ruaje këtë skedar si `java-05.md` pranë README, jashtë `aplikacioni/`.
-Plotëso të gjitha përgjigjet.
-Mos vendos kredenciale reale.
+# RideShare — Java 5 · Hyrja dhe lejet
 
 ## Çfarë ndërtova
-
-Në këtë ushtrim shtova autentikimin dhe autorizimin në aplikacionin RideShare duke përdorur **NextAuth.js** (GitHub Provider) dhe kontrolle të rolit/pronësisë në anën e serverit.
-
-**Ndryshimet kryesore:**
-- Instalova `next-auth@beta` dhe konfigurova GitHub OAuth App (`AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_SECRET` në `.env.local`).
-- Krijova `src/auth.ts` me GitHub Provider dhe callback `jwt/session` që ruan `login`-in e GitHub-it në sesion.
-- Shtova kolonën `pronari TEXT` në tabelën `udhetimet` (Neon) nëpërmjet `schema-java05.sql`. ID `2` ka `pronari = 'Mendritbajrami-cmd'`; ID `1` dhe `3` kanë `pronari = 'shofer-tjeter'`.
-- Shtova funksionin `ndryshoOren(id, oraRe, githubLogin)` në `src/lib/udhetimet.ts` që lexon `pronari` nga databaza dhe hedh gabim `"jo_pronar"` nëse logjiku i sesionit nuk përputhet me pronarin.
-- Krijova `POST /api/ora` (route handler) që kthen `401` nëse nuk ka sesion aktiv dhe `403` nëse pronësia nuk përputhet.
-- Shtova `SessionProvider` në `layout.tsx` dhe komponentin `ButoiHyrjes.tsx` (login/logout në header).
-- Krijova faqen `/udhetimi/[id]/ndrysho` me formular për ndryshim ore.
+Identiteti është kush je: e merr serveri nga sesioni i verifikuar i GitHub (NextAuth), jo nga formulari. Roli (`udhetar` ose `shofer`) ruhet në tabelën `profilet` në Neon dhe vendos çfarë lejohet të bësh. Pronësia (`udhetimet.shofer_id`) tregon cilin udhëtim e zotëron. Ora ndryshon vetëm kur serveri konfirmon që je shofer dhe pronari i atij udhëtimi.
 
 ## Provat që bëra
+### Prova 1: Hyrja, rifreskimi dhe dalja
+Hapa /panel pa hyrë dhe u shfaq butoni "Hyr me GitHub" me mesazhin që lista është publike. Hyra me GitHub; pas rifreskimit emri dhe roli mbetën në panel. Pas klikimit "Dil", paneli kërkoi përsëri hyrje.
 
-### Prova 1: Hyrja me GitHub + ndryshimi i orës së ID 2 (sukses)
-- **Hapat:** Klikova "Hyr me GitHub" → autorizova aplikacionin tek GitHub → u ktheva te aplikacioni i kyçur si `Mendritbajrami-cmd` → hapa udhëtimin ID 2 → klikova "🕐 Ndrysho orën" → futa orën `09:45` → klikova "Ruaj orën".
-- **Rezultati real:** Serveri mori kërkesën, verifikoi sesionin (`login = Mendritbajrami-cmd`), kontrolloi `pronari` të ID 2 (`'Mendritbajrami-cmd'`) — u përputh — dhe ekzekutoi `UPDATE udhetimet SET ora = '09:45' WHERE id = '2'`. Faqja shfaqi `✅ Ora u ndryshua me sukses!` dhe u ridrejtua te `/udhetimi/2`. Ora e re u shfaq direkt nga Neon.
+### Prova 2: Shoferi ndryshon udhëtimin e vet
+Si shofer i ID 2 e ndryshova orën në 08:25. Paneli shfaqi "Ora u ruajt me sukses"; lista, detajet e /udhetimi/2 dhe SQL Editor treguan 08:25. Pastaj e riktheva orën në 08:15.
 
-### Prova 2: Refuzim kur provo ndryshimin e ID 1 (403 – jo pronar)
-- **Hapat:** I kyçur ende si `Mendritbajrami-cmd`, hapa udhëtimin ID 1 → klikova "🕐 Ndrysho orën" → futa orën `10:00` → klikova "Ruaj orën".
-- **Rezultati real:** Serveri verifikoi sesionin (valid) → lexoi `pronari` të ID 1 (`'shofer-tjeter'`) → nuk u përputh me `Mendritbajrami-cmd` → hodhi `jo_pronar` → API ktheu `HTTP 403` me mesazhin `"Nuk ke leje. Ky udhëtim nuk i përket llogarisë sate."`. Faqja shfaqi `❌ Nuk ke leje. Ky udhëtim nuk i përket llogarisë sate.` pa bërë asnjë ndryshim në databazë.
-
-### Prova 3: Refuzim pa hyrë fare (401 – i pa-autentikuar)
-- **Hapat:** Klikova "Dil" (logout) → u largova nga sesioni → hapa direkt URL-në `/udhetimi/2/ndrysho`.
-- **Rezultati real:** Faqja `ndrysho` (client component) zbuloi `status = "unauthenticated"` dhe shfaqi menjëherë mesazhin `❌ Nuk je i autentikuar. Hyr me GitHub që të ndryshosh orën.` pa shfaqur formularin. Nëse dikush do të dërgonte manualisht `POST /api/ora` pa sesion, serveri do të kthente `HTTP 401`.
+### Prova 3: Veprimi pa leje refuzohet
+Në DevTools ndryshova inputin e fshehur `id` nga 2 në 1 dhe klikova Ruaj. U shfaq "Nuk ke leje për këtë udhëtim. Ora nuk ndryshoi." Në Neon SQL Editor `SELECT id, ora, shofer_id FROM udhetimet` tregoi që ID 1 mbeti 08:00 dhe i përket DEMO-SHOFER-2.
 
 ## Ku gjendet puna
-
-- Schema SQL e Java 5: `schema-java05.sql` (root i repo-s)
-- Konfigurimi i NextAuth: `aplikacioni/src/auth.ts`
-- Route handler NextAuth: `aplikacioni/src/app/api/auth/[...nextauth]/route.ts`
-- API e ndryshimit të orës: `aplikacioni/src/app/api/ora/route.ts`
-- Funksioni i pronësisë: `aplikacioni/src/lib/udhetimet.ts` (`ndryshoOren`)
-- Komponenti i hyrjes: `aplikacioni/src/components/ButoiHyrjes.tsx`
-- Faqja e ndryshimit: `aplikacioni/src/app/udhetimi/[id]/ndrysho/page.tsx`
-- Linku i repository-t: https://github.com/Mendritbajrami-cmd/rideshare-mobile
+Repository: https://github.com/yllalickaj7-bit/rideshare-mobile. Skedarët e rinj: `aplikacioni/schema-java05.sql`, `src/lib/auth.ts`, `src/lib/lejet.ts`, `src/app/api/auth/[...nextauth]/route.ts`, `src/components/Hyrja.tsx`, `src/app/panel/page.tsx`, `src/app/panel/actions.ts` dhe `src/app/page.tsx` i përditësuar.
 
 ## Çfarë mbetet për përmirësim
-
-Kërkesa për vend mbetet simulim frontend. Roli i shoferit dhe pasagjerit nuk është i ndarë ende si role të ndryshme në databazë — pronësia kontrollohet vetëm me `pronari = githubLogin`. Rezervimet reale dhe role-t do të shtohen në javët e ardhshme.
+Kërkesa për vend është ende simulim. Më pas do ta ruaja kërkesën në Neon dhe do t'i lejoja shoferit-pronar ta pranojë ose refuzojë.
 
 ## Ndihma nga AI (Artificial Intelligence – inteligjencë artificiale)
-
-Përdora AI për konfigurimin e NextAuth.js v5 beta (GitHub provider, callback jwt/session, route handler), krijimin e funksionit `ndryshoOren` me kontroll pronësie, strukturimin e API route me kodet `401/403`, dhe shkrimin e raportit. Të gjitha ndryshimet i verifikova vetë duke ekzekutuar `npm run build` dhe duke testuar tre skenarët në browser.
+AI më ndihmoi të vendos skedarët sipas udhëzimeve dhe të krijojë tabelën `profilet`. Hyrjen, ndryshimin e orës dhe refuzimin e ID 1 i provova vetë në shfletues dhe Neon.
