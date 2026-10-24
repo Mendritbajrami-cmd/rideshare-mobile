@@ -9,6 +9,7 @@ export function VeprimKerkese({ kerkesaId }: { kerkesaId: number }) {
   const [mesazhi, setMesazhi] = useState("");
 
   async function vepro(vendim: "pranuar" | "refuzuar") {
+    if (po) return;
     setPo(true);
     setMesazhi("");
     try {
@@ -16,11 +17,12 @@ export function VeprimKerkese({ kerkesaId }: { kerkesaId: number }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ vendim }),
+        cache: "no-store",
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.sukses) {
         setMesazhi(vendim === "pranuar" ? "Kërkesa u pranua." : "Kërkesa u refuzua.");
-        setTimeout(() => router.refresh(), 800);
+        router.refresh();
         return;
       }
       setMesazhi(data.gabim || "Gabim gjatë përpunimit.");
@@ -32,38 +34,36 @@ export function VeprimKerkese({ kerkesaId }: { kerkesaId: number }) {
   }
 
   return (
-    <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginTop: "0.9rem" }}>
+    <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center", marginTop: "0.9rem" }}>
       <button
         type="button"
+        className="action"
         onClick={() => vepro("pranuar")}
         disabled={po}
         style={{
-          padding: "0.6rem 1rem",
-          borderRadius: "999px",
-          border: "none",
-          background: "linear-gradient(90deg, #22c55e 0%, #16a34a 100%)",
+          background: "#22c55e",
           color: "#ffffff",
-          fontWeight: 600,
+          border: "none",
         }}
       >
         {po ? "Duke procesuar..." : "Prano"}
       </button>
       <button
         type="button"
+        className="action"
         onClick={() => vepro("refuzuar")}
         disabled={po}
         style={{
-          padding: "0.6rem 1rem",
-          borderRadius: "999px",
+          background: "transparent",
+          color: "#dc2626",
           border: "1px solid #fca5a5",
-          background: "rgba(239, 68, 68, 0.12)",
-          color: "#991b1b",
-          fontWeight: 600,
         }}
       >
         Refuzo
       </button>
-      {mesazhi && <span style={{ alignSelf: "center", fontWeight: 600 }}>{mesazhi}</span>}
+      {mesazhi ? (
+        <span style={{ fontWeight: 600, color: "#1f2937" }}>{mesazhi}</span>
+      ) : null}
     </div>
   );
 }
