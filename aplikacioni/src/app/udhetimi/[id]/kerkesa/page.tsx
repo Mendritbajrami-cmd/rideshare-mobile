@@ -82,9 +82,11 @@ export default async function Kerkesa({
             </>
           ) : (
             <>
-              <h1>Kërkesa u dërgua me sukses</h1>
-              <p>Kërkesa për {udhetim.nisja} është dërguar te shoferi.</p>
-              <p>Po pret përgjigjen e shoferit.</p>
+              <h1>Simulim: kërkesa nuk u dërgua</h1>
+              <p>Kjo faqe është demonstrim mësimor dhe nuk ka rezervim real.</p>
+              <p role="status" style={{ marginTop: "1rem", fontWeight: 600 }}>
+                Nuk u gjet kërkesë e dërguar për {udhetim.nisja} → {udhetim.destinacioni}. Hyr me GitHub dhe kliko "Kërko vend" që ta dërgosh kërkesën te shoferi.
+              </p>
             </>
           )}
         </>
