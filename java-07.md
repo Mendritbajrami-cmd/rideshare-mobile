@@ -47,26 +47,42 @@ të shpjegojë qartë që kjo është demonstrim mësimor, pa rezervim real.
 
 ### Prova 1 · Rrjedha
 
-- Hapat: [PLOTËSO]
-- Pritshmëria: [PLOTËSO]
-- Vëzhgimi: [PLOTËSO]
+- Hapat: Hapa listën publike te `/`, zura ID 1 (Prishtinë – AAB, ora 08:00,
+  1 vend i lirë) dhe klikova "Shiko detajet". Te detajet hapëm faqen e
+  kërkesës demonstrative me "Kërko vend".
+- Pritshmëria: I njëjti ID të sjellë te detajet e duhura: Prishtinë – AAB,
+  ora 08:00, 1 vend, vendtakimi "Stacioni i autobusëve"; te kërkesa i njëjtat
+  vlera, pa pretenduar rezervim real.
+- Vëzhgimi: Kaloj — detajet treguan Prishtinë – AAB, Ora 08:00,
+  Vendtakimi: Stacioni i autobusëve, Vende të lira: 1. Faqja e kërkesës
+  tregoi të njëjtin udhëtim dhe mesazhin e simulimit. Kufiri i simulimit
+  shpjegohet qartë: "Kjo faqe është demonstrim mësimor dhe nuk ka rezervim real."
 
 ### Prova 2 · Korrigjimi
 
-- Hapat: [PLOTËSO]
-- Pritshmëria: [PLOTËSO]
-- Vëzhgimi: [PLOTËSO]
+- Hapat: Përsërita saktë hapat e Problemit 1: hyra te
+  `/udhetimi/1/kerkesa` si vizitor pa sesion (asnjë kërkesë e dërguar)
+  dhe lexova mesazhin pas ndryshimit.
+- Pritshmëria: Faqja të mos më shkruajë më "Kërkesa u dërgua me sukses",
+  por të tregojë qartë gjendjen simuluese: kërkesa nuk u dërgua.
+- Vëzhgimi: Kaloj — tani shfaqet "Simulim: kërkesa nuk u dërgua", shpjegimi
+  "Kjo faqe është demonstrim mësimor dhe nuk ka rezervim real" dhe udhëzimi
+  për hyrje me GitHub. Konfirmimi i rremë u hoq.
 
 ### Prova 3 · Një hyrje tjetër
 
-- Hapat: [PLOTËSO]
-- Pritshmëria: [PLOTËSO]
-- Vëzhgimi: [PLOTËSO]
+- Hapat: Ndryshova vetëm hyrjen: përdora ID 3 (Lipjan – AAB, ora 07:45,
+  0 vende) nga lista dhe hapa `/udhetimi/3/kerkesa`.
+- Pritshmëria: Me 0 vende pres mesazh "nuk ka vende" dhe asnjë premtim
+  për rezervim; pres edhe një mënyrë për t'u kthyer te lista.
+- Vëzhgimi: Pjesërisht dështoi — faqja tregoi saktë "Nuk ka vende të lira."
+  (asnjë premtim rezervimi), por mbetet Problemi 2: pa lidhje kthimi te lista,
+  faqja është vend i vrarë. Kjo mbetet e dokumentuar për korrigjim tjetër.
 
 ## Lidhjet e commit-eve
 
-- Para: [PLOTËSO]
-- Pas: [PLOTËSO]
+- Para: https://github.com/Mendritbajrami-cmd/rideshare-mobile/commit/be84e26fc38df8f561182efe62c8aa53455d595d
+- Pas: https://github.com/Mendritbajrami-cmd/rideshare-mobile/commit/4a87b9823408c1f02a1ecee28d7b8414d602265d
 
 ## Ndryshimi i ri
 
