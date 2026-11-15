@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getServerSession } from "next-auth";
 import { gjejUdhetimin } from "@/lib/udhetimet";
 import { KerkesaButoni } from "@/components/KerkesaButoni";
 import { ZgjedhVendtakimin } from "@/components/ZgjedhVendtakimin";
+import { PreferimiButoni } from "@/components/PreferimiButoni";
+import { authOptions } from "@/lib/auth";
+import { lexoPreferimin, numriPreferimeve } from "@/lib/preferimet";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,6 +29,22 @@ export default async function Detajet({
   }
   if (!udhetim) notFound();
 
+  const session = await getServerSession(authOptions);
+  const udhetariLogin =
+    (session?.user as { login?: string } | undefined)?.login ?? "";
+
+  let ruajturNisje = false;
+  let numriNisje = 0;
+  if (udhetariLogin) {
+    try {
+      ruajturNisje = await lexoPreferimin(udhetariLogin, id);
+      numriNisje = await numriPreferimeve(udhetariLogin);
+    } catch {
+      ruajturNisje = false;
+      numriNisje = 0;
+    }
+  }
+
   return (
     <main>
       <Link href="/">← Kthehu te lista</Link>
@@ -33,6 +53,7 @@ export default async function Detajet({
       <p>Vendtakimi: {udhetim.vendtakimi}</p>
       <p>Vende të lira: {udhetim.vende}</p>
       <KerkesaButoni id={id} vende={udhetim.vende} />
+      <PreferimiButoni idUdhetimi={id} ruajturNisje={ruajturNisje} numriNisje={numriNisje} />
       <hr style={{ margin: "1.5rem 0" }} />
       <ZgjedhVendtakimin />
       <hr style={{ margin: "1.5rem 0" }} />
