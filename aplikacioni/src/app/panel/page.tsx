@@ -27,6 +27,31 @@ export default async function Panel() {
     }
   }
 
+  // Paneli është vetëm për shoferët: pa sesion ose me rol udhetar, përmbajtja
+  // nuk lexohet dhe nuk shfaqet.
+  if (!session?.user || !login) {
+    return (
+      <main>
+        <Link href="/">← Kthehu te lista publike</Link>
+        <h1>Paneli i shoferit</h1>
+        <Hyrja />
+        <p>Hyr me GitHub me një llogari shofer për të hapur panelin.</p>
+      </main>
+    );
+  }
+
+  if (roli !== "shofer") {
+    return (
+      <main>
+        <Link href="/">← Kthehu te lista publike</Link>
+        <h1>Paneli i shoferit</h1>
+        <p role="alert" data-testid="pa-leje">
+          Nuk ke leje. Paneli është vetëm për llogaritë me rol shofer.
+        </p>
+      </main>
+    );
+  }
+
   let udhetimet: Awaited<ReturnType<typeof lexoUdhetimet>> = [];
   try {
     udhetimet = await lexoUdhetimet();

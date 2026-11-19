@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { merrKerkesatPerShoferin } from "@/lib/kerkesa";
+import { merRolin } from "@/lib/lejet";
 import { Hyrja } from "@/components/Hyrja";
 import { RifreskimiAutomatik } from "@/components/RifreskimiAutomatik";
 import { VeprimKerkese } from "./VeprimKerkese";
@@ -16,13 +17,42 @@ export default async function PanelKerkesat() {
     session?.user?.name ??
     "";
 
+  if (!session?.user || !login) {
+    return (
+      <main>
+        <Link href="/">← Kthehu te lista publike</Link>
+        <h1>Kërkesat për udhëtimet</h1>
+        <Hyrja />
+        <p>Hyr me GitHub me një llogari shofer për të parë kërkesat.</p>
+      </main>
+    );
+  }
+
+  // Vetëm shoferët mund t'i shohin dhe t'i trajtojnë kërkesat; për të tjerët
+  // nuk lexohen fare nga databaza.
+  let roli = "";
+  try {
+    roli = await merRolin(login);
+  } catch {
+    roli = "";
+  }
+  if (roli !== "shofer") {
+    return (
+      <main>
+        <Link href="/">← Kthehu te lista publike</Link>
+        <h1>Kërkesat për udhëtimet</h1>
+        <p role="alert" data-testid="pa-leje">
+          Nuk ke leje. Kërkesat janë vetëm për llogaritë me rol shofer.
+        </p>
+      </main>
+    );
+  }
+
   let kerkesa: Awaited<ReturnType<typeof merrKerkesatPerShoferin>> = [];
-  if (session?.user && login) {
-    try {
-      kerkesa = await merrKerkesatPerShoferin(login);
-    } catch {
-      kerkesa = [];
-    }
+  try {
+    kerkesa = await merrKerkesatPerShoferin(login);
+  } catch {
+    kerkesa = [];
   }
 
   return (
