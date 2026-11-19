@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { gjejUdhetimin } from "@/lib/udhetimet";
-import { KerkesaButoni } from "@/components/KerkesaButoni";
+import { GjendjaUdhetimit } from "@/components/GjendjaUdhetimit";
 import { ZgjedhVendtakimin } from "@/components/ZgjedhVendtakimin";
 import { PreferimiButoni } from "@/components/PreferimiButoni";
 import { authOptions } from "@/lib/auth";
@@ -51,8 +51,7 @@ export default async function Detajet({
       <h1>{udhetim.nisja} – {udhetim.destinacioni}</h1>
       <p>Ora: {udhetim.ora}</p>
       <p>Vendtakimi: {udhetim.vendtakimi}</p>
-      <p>Vende të lira: {udhetim.vende}</p>
-      <KerkesaButoni id={id} vende={udhetim.vende} />
+      <GjendjaUdhetimit idUdhetimi={id} vendeNisje={udhetim.vende} />
       <PreferimiButoni idUdhetimi={id} ruajturNisje={ruajturNisje} numriNisje={numriNisje} />
       <hr style={{ margin: "1.5rem 0" }} />
       <ZgjedhVendtakimin />

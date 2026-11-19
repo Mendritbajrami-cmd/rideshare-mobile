@@ -101,7 +101,9 @@ export async function pergjigjuKerkeses(
   kerkesaId: number,
   shoferLogin: string,
   vendim: "pranuar" | "refuzuar"
-): Promise<{ ok: true } | { ok: false; arsyeja: string }> {
+): Promise<
+  { ok: true; tashme?: boolean; vende?: number } | { ok: false; arsyeja: string }
+> {
   const sql = getSql();
   try {
     const rows = await sql`
@@ -111,23 +113,128 @@ export async function pergjigjuKerkeses(
       WHERE k.id = ${kerkesaId}
     `;
     if (rows.length === 0) return { ok: false, arsyeja: "Kërkesa nuk u gjet." };
-    const pronari = (rows[0].shofer_id as string | null) ?? (rows[0].pronari as string | null);
+
+    // Identiteti vjen nga sesioni; shoferin pronar e njeh udhëtimi.
+    const pronari =
+      (rows[0].shofer_id as string | null) ?? (rows[0].pronari as string | null);
     const login = (shoferLogin || "").trim().toLowerCase();
     if (pronari && pronari.trim().toLowerCase() !== login) {
-      // Lejo gjithsesi nëse kërkesa ekziston dhe është në pritje
-    }
-    if (rows[0].status !== "ne_pritje") return { ok: false, arsyeja: "Kërkesa është trajtuar tashmë." };
-
-    if (vendim === "pranuar") {
-      const vende = Number(rows[0].vende || 0);
-      if (vende <= 0) return { ok: false, arsyeja: "Nuk ka më vende të lira." };
-      await sql`UPDATE udhetimet SET vende = ${vende - 1} WHERE id = ${rows[0].udhetimi_id}`;
+      return { ok: false, arsyeja: "Vetëm shoferi pronar mund të përgjigjet." };
     }
 
-    await sql`UPDATE kerkesa SET status = ${vendim}, perditesuar_ne = NOW() WHERE id = ${kerkesaId}`;
-    return { ok: true };
+    if (vendim === "refuzuar") {
+      const r = await sql`
+        UPDATE kerkesa SET status = 'refuzuar', perditesuar_ne = NOW()
+        WHERE id = ${kerkesaId} AND status = 'ne_pritje'
+        RETURNING id
+      `;
+      if (r.length === 0) {
+        if (rows[0].status === "refuzuar") return { ok: true, tashme: true };
+        return { ok: false, arsyeja: "Kërkesa është trajtuar tashmë." };
+      }
+      return { ok: true };
+    }
+
+    // Pranimi dhe zbritja e vendeve bëhen në një deklaratë të vetme:
+    // vetëm një kërkesë në pritje me vende të lira pranohet, një herë.
+    const r = await sql`
+      WITH kandidat AS (
+        SELECT k.id, k.udhetimi_id, u.vende
+        FROM kerkesa k
+        JOIN udhetimet u ON u.id = k.udhetimi_id
+        WHERE k.id = ${kerkesaId} AND k.status = 'ne_pritje'
+      ), pranimi AS (
+        UPDATE kerkesa SET status = 'pranuar', perditesuar_ne = NOW()
+        WHERE id IN (SELECT id FROM kandidat WHERE vende > 0)
+        RETURNING udhetimi_id
+      )
+      UPDATE udhetimet SET vende = vende - 1
+      WHERE id IN (SELECT udhetimi_id FROM pranimi)
+      RETURNING vende
+    `;
+    if (r.length > 0) return { ok: true, vende: Number(r[0].vende) };
+
+    // Përsëritja e të njëjtit pranim nuk e ul numrin përsëri.
+    if (rows[0].status === "pranuar") return { ok: true, tashme: true };
+    if (Number(rows[0].vende) <= 0) {
+      return { ok: false, arsyeja: "Nuk ka më vende të lira." };
+    }
+    return { ok: false, arsyeja: "Kërkesa është trajtuar tashmë." };
   } catch (err) {
+    const kodi = (err as { code?: string })?.code;
+    if (kodi === "23514") {
+      return { ok: false, arsyeja: "Nuk ka më vende të lira." };
+    }
     console.error(err);
     return { ok: false, arsyeja: "Gabim gjatë përpunimit të kërkesës." };
   }
+}
+
+export type GjendjaEUdhetimit = {
+  udhetimi: {
+    id: string;
+    nisja: string;
+    destinacioni: string;
+    ora: string;
+    vende: number;
+  };
+  roli: "shofer" | "udhetar";
+  kerkesat: {
+    id: number;
+    udhetari_login: string;
+    status: KerkesaStatus;
+    krijuar_ne: string;
+  }[];
+};
+
+// Leximi i gjendjes: identiteti vjen nga sesioni.
+// Shoferi lexon kërkesat e udhëtimit të vet; udhëtari vetëm kërkesën e vet.
+export async function lexoGjendjenEUdhetimit(
+  udhetimiId: string,
+  loginSesionit: string
+): Promise<GjendjaEUdhetimit | null> {
+  const sql = getSql();
+  const login = (loginSesionit || "").trim();
+  const u = await sql`
+    SELECT id, nisja, destinacioni, ora, vende, pronari, shofer_id
+    FROM udhetimet WHERE id = ${udhetimiId}
+  `;
+  if (u.length === 0) return null;
+
+  const pronari =
+    (u[0].shofer_id as string | null) ?? (u[0].pronari as string | null);
+  const jamShofer =
+    !!pronari && login !== "" && pronari.trim().toLowerCase() === login.toLowerCase();
+
+  const kerkesat = jamShofer
+    ? await sql`
+        SELECT id, udhetari_login, status, krijuar_ne
+        FROM kerkesa
+        WHERE udhetimi_id = ${udhetimiId}
+        ORDER BY krijuar_ne ASC, id ASC
+      `
+    : await sql`
+        SELECT id, udhetari_login, status, krijuar_ne
+        FROM kerkesa
+        WHERE udhetimi_id = ${udhetimiId}
+          AND LOWER(TRIM(udhetari_login)) = LOWER(TRIM(${login}))
+        ORDER BY krijuar_ne ASC, id ASC
+      `;
+
+  return {
+    udhetimi: {
+      id: String(u[0].id),
+      nisja: String(u[0].nisja),
+      destinacioni: String(u[0].destinacioni),
+      ora: String(u[0].ora),
+      vende: Number(u[0].vende),
+    },
+    roli: jamShofer ? "shofer" : "udhetar",
+    kerkesat: kerkesat.map((k) => ({
+      id: Number(k.id),
+      udhetari_login: String(k.udhetari_login),
+      status: k.status as KerkesaStatus,
+      krijuar_ne: String(k.krijuar_ne),
+    })),
+  };
 }
