@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { merRolin } from "@/lib/lejet";
+import { merRolin, lexoShoferet } from "@/lib/lejet";
 import { lexoUdhetimet } from "@/lib/udhetimet";
 import { Hyrja } from "@/components/Hyrja";
 import { FormularOres } from "./FormularOres";
+import { FormularUdhetimit } from "./FormularUdhetimit";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -30,6 +31,15 @@ export default async function Panel() {
     udhetimet = await lexoUdhetimet();
   } catch {
     udhetimet = [];
+  }
+
+  let shoferet: string[] = [];
+  if (roli === "shofer") {
+    try {
+      shoferet = await lexoShoferet();
+    } catch {
+      shoferet = [];
+    }
   }
 
   return (
@@ -96,7 +106,12 @@ export default async function Panel() {
               Shiko kërkesat për udhëtimet
             </Link>
           </div>
-          {roli === "shofer" ? <FormularOres udhetimet={udhetimet} /> : null}
+          {roli === "shofer" ? (
+            <>
+              <FormularUdhetimit shoferet={shoferet} login={login} />
+              <FormularOres udhetimet={udhetimet} />
+            </>
+          ) : null}
         </>
       ) : null}
     </main>

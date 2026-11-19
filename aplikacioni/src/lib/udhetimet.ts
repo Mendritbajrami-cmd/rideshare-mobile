@@ -29,6 +29,30 @@ export async function gjejUdhetimin(id: string): Promise<Udhetim | undefined> {
   return rows[0] as Udhetim | undefined;
 }
 
+export type UdhetimIRi = {
+  nisja: string;
+  destinacioni: string;
+  ora: string;
+  vendtakimi: string;
+  vende: number;
+  shoferId: string;
+};
+
+// Shton udhëtim me ID numerik vijues dhe pronar shoferin e zgjedhur.
+export async function shtoUdhetim(u: UdhetimIRi): Promise<string> {
+  const sql = getSql();
+  const rows = await sql`
+    INSERT INTO udhetimet (id, nisja, destinacioni, ora, vendtakimi, vende, pronari, shofer_id)
+    SELECT (COALESCE(MAX((id)::int), 0) + 1)::text,
+           ${u.nisja}, ${u.destinacioni}, ${u.ora}, ${u.vendtakimi},
+           ${u.vende}, ${u.shoferId}, ${u.shoferId}
+    FROM udhetimet
+    WHERE id ~ '^[0-9]+$'
+    RETURNING id
+  `;
+  return String(rows[0].id);
+}
+
 export async function ndryshoOren(
   id: string,
   oraRe: string,

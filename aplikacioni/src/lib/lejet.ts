@@ -32,6 +32,26 @@ export async function eshtePronar(
   return rows.length > 0;
 }
 
+// Vetëm llogaritë me rol "shofer" mund të zgjidhen si pronar i një udhëtimi.
+export async function lexoShoferet(): Promise<string[]> {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT github_login FROM profilet
+    WHERE roli = 'shofer'
+    ORDER BY github_login
+  `;
+  return rows.map((r) => String(r.github_login));
+}
+
+export async function eshteShofer(githubLogin: string): Promise<boolean> {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT 1 FROM profilet
+    WHERE github_login = ${githubLogin} AND roli = 'shofer'
+  `;
+  return rows.length > 0;
+}
+
 export async function lejohetNdryshimiOres(
   id: string,
   githubLogin: string
