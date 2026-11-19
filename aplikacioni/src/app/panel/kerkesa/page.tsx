@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { merrKerkesatPerShoferin } from "@/lib/kerkesa";
 import { Hyrja } from "@/components/Hyrja";
+import { RifreskimiAutomatik } from "@/components/RifreskimiAutomatik";
 import { VeprimKerkese } from "./VeprimKerkese";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,7 @@ export default async function PanelKerkesat() {
       <Link href="/panel">← Kthehu te paneli</Link>
       <h1>Kërkesat për udhëtimet</h1>
       <Hyrja />
+      {session ? <RifreskimiAutomatik /> : null}
 
       {!session ? (
         <p>Hyr me GitHub për të parë kërkesat.</p>

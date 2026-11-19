@@ -12,6 +12,85 @@ export type Kerkesa = {
   perditesuar_ne: string;
 };
 
+export type DritarjaKerkeseve = {
+  fillimi: string; // timestamp lokal (Europe/Belgrade)
+  rifreskohet: string; // ora e nisjes së radhës, HH:MM
+};
+
+// Një cikël = nga nisja e kaluar deri te nisja e radhës e të njëjtës linjë.
+// Ora merret nga serveri (NOW në databazë), jo nga klienti, në zonën e
+// Kosovës. Kështu kufiri rifreskohet vetëm kur nis udhëtimi.
+export async function dritarjaERadhes(
+  udhetimiId: string
+): Promise<DritarjaKerkeseve | null> {
+  const sql = getSql();
+  const rows = await sql`
+    WITH t AS (
+      SELECT ora FROM udhetimet WHERE id = ${udhetimiId}
+    ), n AS (
+      SELECT t.ora, (NOW() AT TIME ZONE 'Europe/Belgrade') AS tani
+      FROM t
+    ), r AS (
+      SELECT n.ora, n.tani,
+             (n.tani::date + n.ora::time) AS nisja_sot
+      FROM n
+    ), o AS (
+      SELECT r.ora,
+             CASE WHEN r.tani < r.nisja_sot THEN r.nisja_sot
+                  ELSE r.nisja_sot + INTERVAL '1 day' END AS nisja_radhes
+      FROM r
+    )
+    SELECT
+      (o.nisja_radhes - INTERVAL '1 day')::text AS fillimi,
+      to_char(o.nisja_radhes, 'HH24:MI') AS rifreskohet
+    FROM o
+  `;
+  if (rows.length === 0) return null;
+  return {
+    fillimi: String(rows[0].fillimi),
+    rifreskohet: String(rows[0].rifreskohet),
+  };
+}
+
+// A ka ky udhëtar një kërkesë për të njëjtën linjë (nisja → destinacioni, ora)
+// brenda ciklit aktual? Linja matet me vlerat e udhëtimit, jo me ID-në, ndaj
+// edhe një rresht tjetër me të njëjtën linjë nuk e anashkalon kufirin.
+export async function kaKerkeseNeCikel(
+  udhetimiId: string,
+  login: string,
+  fillimi: string
+): Promise<boolean> {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT EXISTS (
+      SELECT 1
+      FROM kerkesa k
+      JOIN udhetimet u ON u.id = k.udhetimi_id
+      JOIN udhetimet t ON t.id = ${udhetimiId}
+      WHERE LOWER(TRIM(k.udhetari_login)) = LOWER(TRIM(${login}))
+        AND LOWER(TRIM(u.nisja)) = LOWER(TRIM(t.nisja))
+        AND LOWER(TRIM(u.destinacioni)) = LOWER(TRIM(t.destinacioni))
+        AND u.ora::time = t.ora::time
+        AND ((k.krijuar_ne AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Belgrade')
+            >= ${fillimi}::timestamp
+    ) AS bllokuar
+  `;
+  return Boolean(rows[0].bllokuar);
+}
+
+export async function merrKufirin(
+  udhetimiId: string,
+  login: string
+): Promise<{ bllokuar: boolean; rifreskohet: string; fillimi: string }> {
+  const dritarja = await dritarjaERadhes(udhetimiId);
+  if (!dritarja) return { bllokuar: false, rifreskohet: "", fillimi: "" };
+  return {
+    bllokuar: await kaKerkeseNeCikel(udhetimiId, login, dritarja.fillimi),
+    rifreskohet: dritarja.rifreskohet,
+    fillimi: dritarja.fillimi,
+  };
+}
+
 export async function krijoKerkese(
   udhetimiId: string,
   udhetariLogin: string
@@ -26,6 +105,16 @@ export async function krijoKerkese(
     }
     if (Number(udhetimet[0].vende) <= 0) {
       return { ok: false, arsyeja: "Nuk ka vende të lira." };
+    }
+
+    // Kufiri: një kërkesë për udhëtar dhe linjë brenda ciklit aktual.
+    // Cikli rifreskohet kur nis udhëtimi (koha e serverit).
+    const kufiri = await merrKufirin(udhetimiId, udhetariLogin);
+    if (kufiri.bllokuar) {
+      return {
+        ok: false,
+        arsyeja: `Ke përdorur kërkesën për këtë linjë. Një vend mund të kërkohet një herë; rifreskohet pas nisjes në ${kufiri.rifreskohet}.`,
+      };
     }
 
     const ekziston = await sql`
@@ -47,7 +136,7 @@ export async function krijoKerkese(
       INSERT INTO kerkesa (udhetimi_id, udhetari_login, status)
       VALUES (${udhetimiId}, ${udhetariLogin}, 'ne_pritje')
       ON CONFLICT (udhetimi_id, udhetari_login)
-      DO UPDATE SET status = 'ne_pritje', perditesuar_ne = NOW()
+      DO UPDATE SET status = 'ne_pritje', krijuar_ne = NOW(), perditesuar_ne = NOW()
     `;
     return { ok: true };
   } catch (err) {
@@ -187,6 +276,8 @@ export type GjendjaEUdhetimit = {
     status: KerkesaStatus;
     krijuar_ne: string;
   }[];
+  // Vetëm për udhëtarin: a ka shfrytëzuar kërkesën e linjës në këtë cikël.
+  kufizimi: { bllokuar: boolean; rifreskohet: string } | null;
 };
 
 // Leximi i gjendjes: identiteti vjen nga sesioni.
@@ -207,6 +298,14 @@ export async function lexoGjendjenEUdhetimit(
     (u[0].shofer_id as string | null) ?? (u[0].pronari as string | null);
   const jamShofer =
     !!pronari && login !== "" && pronari.trim().toLowerCase() === login.toLowerCase();
+
+  // Kufiri llogaritet vetëm për udhëtarin dhe vetëm me kohën e serverit.
+  const kufizimi = jamShofer
+    ? null
+    : await merrKufirin(udhetimiId, login).then((k) => ({
+        bllokuar: k.bllokuar,
+        rifreskohet: k.rifreskohet,
+      }));
 
   const kerkesat = jamShofer
     ? await sql`
@@ -238,5 +337,6 @@ export async function lexoGjendjenEUdhetimit(
       status: k.status as KerkesaStatus,
       krijuar_ne: String(k.krijuar_ne),
     })),
+    kufizimi,
   };
 }

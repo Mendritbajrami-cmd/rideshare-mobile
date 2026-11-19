@@ -26,6 +26,7 @@ type Gjendja = {
   };
   roli: "shofer" | "udhetar";
   kerkesat: Kerkese[];
+  kufizimi: { bllokuar: boolean; rifreskohet: string } | null;
 };
 
 const INTERVALI_MS = 5000;
@@ -217,6 +218,16 @@ export function GjendjaUdhetimit({
 
   const vende = gjendja?.udhetimi.vende ?? vendeNisje;
   const jamShofer = gjendja?.roli === "shofer";
+  const bllokuar = gjendja?.kufizimi?.bllokuar ?? false;
+  const rifreskohet = gjendja?.kufizimi?.rifreskohet ?? "";
+  const kufiri = (teksti: string) => (
+    <p
+      data-testid="kufiri"
+      style={{ margin: "0.75rem 0 0", fontWeight: 600, color: "#f0b429" }}
+    >
+      {teksti} · rifreskohet pas nisjes në {rifreskohet}
+    </p>
+  );
   const butoniKerko = (teksti: string) => (
     <button
       type="button"
@@ -301,7 +312,9 @@ export function GjendjaUdhetimit({
                 Pa kërkesë
               </h3>
               <p style={{ margin: "0.5rem 0", color: "#9fb0cc" }}>Nuk ke kërkesë për këtë udhëtim.</p>
-              {butoniKerko("Kërko një vend")}
+              {bllokuar
+                ? kufiri("Ke përdorur kërkesën për këtë linjë")
+                : butoniKerko("Kërko një vend")}
             </article>
           ) : (
             gjendja.kerkesat.map((k) => (
@@ -319,10 +332,16 @@ export function GjendjaUdhetimit({
                     ? "Vendi u konfirmua"
                     : "Kërkesa u refuzua nga shoferi"}
                 </p>
-                {/* Butoni mbetet i dukshëm edhe pas një përgjigjeje, që kërkimi të mund të përsëritet. */}
+                {/* Një kërkesë për linjë; pas përgjigjes kufiri mbetet deri në nisjen e radhës. */}
                 {k.status !== "ne_pritje" ? (
                   <div style={{ marginTop: "0.75rem" }}>
-                    {butoniKerko(k.status === "refuzuar" ? "Provo përsëri" : "Kërko një vend")}
+                    {bllokuar
+                      ? kufiri(
+                          k.status === "pranuar"
+                            ? "Vendi u konfirmua · kufiri i kërkesave"
+                            : "Kërkesa u refuzua · kufiri i kërkesave"
+                        )
+                      : butoniKerko(k.status === "refuzuar" ? "Provo përsëri" : "Kërko një vend")}
                   </div>
                 ) : null}
               </article>

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { merRolin, lexoShoferet } from "@/lib/lejet";
 import { lexoUdhetimet } from "@/lib/udhetimet";
 import { Hyrja } from "@/components/Hyrja";
+import { RifreskimiAutomatik } from "@/components/RifreskimiAutomatik";
 import { FormularOres } from "./FormularOres";
 import { FormularUdhetimit } from "./FormularUdhetimit";
 
@@ -47,6 +48,7 @@ export default async function Panel() {
       <Link href="/">← Kthehu te lista publike</Link>
       <h1>Paneli i shoferit</h1>
       <Hyrja />
+      {session ? <RifreskimiAutomatik etiketa="Paneli përditësohet automatikisht çdo 5 sekonda" /> : null}
 
       {!session ? (
         <p>Lista e udhëtimeve është publike. Hyr me GitHub për të ndryshuar orën e udhëtimit tënd.</p>

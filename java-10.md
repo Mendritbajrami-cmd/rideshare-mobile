@@ -10,8 +10,12 @@ ekran shërben për të dy rolet: serveri e njeh rolin nga sesioni dhe nga
 pronari i udhëtimit. Shoferi sheh kërkesat e udhëtimit të vet dhe butonat
 "Prano kërkesën" / "Refuzo"; udhëtari sheh vetëm kërkesën e vet, njoftimin
 kur shoferi përgjigjet ("Kërkesa u pranua nga shoferi." ose "Kërkesa u
-refuzua nga shoferi.") dhe butonin "Kërko një vend" (edhe pas një përgjigjeje,
-që kërkimi të mund të përsëritet). Pranimi zbret një vend një herë, përsëritja
+refuzua nga shoferi.") dhe butonin "Kërko një vend". Kufiri: një udhëtar mund
+të kërkojë vetëm një vend për një linjë (nisja → destinacioni, ora) brenda
+ciklit; kufiri llogaritet me orën e serverit dhe rifreskohet kur nis udhëtimi
+i radhës (p.sh. Prishtinë → AAB, 08:00). Kështu një përdorues nuk mund t'i
+mbushë vendet duke e shtypur disa herë. Pranimi zbret një vend një herë,
+përsëritja
 e pranimit nuk e ul numrin përsëri dhe vendet nuk bëhen negative. Nëse leximi
 dështon, ekrani mban vlerat e fundit dhe shfaq "Po rilidhemi · të dhënat mund
 të jenë të vjetra"; pas rikthimit lexon menjëherë dhe paralajmërimi hiqet
@@ -41,6 +45,11 @@ vetëm pas një përgjigjeje të suksesshme.
   me butona që tregojnë pritjen dhe konfirmohen vetëm pas përgjigjes.
 - `aplikacioni/src/app/udhetimi/[id]/page.tsx` — vendos komponentin e
   gjendjes në faqen e udhëtimit (në vend të butonit të vjetër të kërkesës).
+- `aplikacioni/src/components/RifreskimiAutomatik.tsx` — rifreskon panelin me
+  `router.refresh()` çdo 5 sekonda; pauzon pa lidhje dhe rifreskon menjëherë
+  pas rikthimit.
+- `aplikacioni/src/app/panel/page.tsx` dhe `.../panel/kerkesa/page.tsx` —
+  vendosin rifreskimin automatik të panelit.
 
 ## Provat
 
@@ -85,9 +94,13 @@ përgjigjet.`; pa sesion, leximi dhe pranimi kthyen **401**.
 
 Refuzimi u provua në të njëjtin udhëtim 10: shoferi klikoi "Refuzo" dhe
 udhëtari pa "U refuzua", njoftimin "Kërkesa u refuzua nga shoferi." dhe
-butonin "Provo përsëri"; vendet mbetën 2, kërkesa u shënua `refuzuar`.
-Kërkimi i ri pas pranimit e kthen vendin (2 → 1 → 2) dhe kërkesën në
-`ne_pritje`, ndaj i njëjti çift nuk mban dy vende.
+shënimin e kufirit ("Kërkesa u refuzua · kufiri i kërkesave · rifreskohet pas
+nisjes në 08:15") pa buton; vendet mbetën 2, kërkesa u shënua `refuzuar`.
+Edhe një kërkesë e dytë për të njëjtën linjë (edhe përmes një udhëtimi tjetër
+me të njëjtën nisje, destinacion dhe orë) u refuzua me `400` dhe vendet
+mbetën 2. Kufiri llogaritet nga `NOW()` i databazës; kur kërkesa u zhvendos
+2 ditë më parë (jashtë ciklit), butoni "Provo përsëri" u shfaq dhe kërkimi i
+ri kaloi, pa iu ulur vendet udhëtimit.
 
 ### Prova 3 — Ndërprerja dhe rilidhja
 
@@ -123,9 +136,12 @@ udhëtimeve është numri fillestar i vendeve.
 - Udhëtimet demo 1 dhe 3 kanë pronar `DEMO-SHOFER-2`; pranimi tani kërkon
   login-in e pronarit, ndaj ato pranohen vetëm me atë identitet prove. Për
   demonstrim përdoret udhëtimi 10, pronar `Mendritbajrami-cmd`.
-- Pas refuzimit ose pranimit, udhëtari mund të dërgojë përsëri kërkesën; ajo
-  kthehet në `ne_pritje` (gjendja e vjetër nuk ruhet si histori) dhe, nëse
-  ishte pranuar, vendi i zënë kthehet para kërkimit të ri.
+- Kufiri i kërkesave është një kërkesë për udhëtar dhe linjë brenda ciklit
+  (nga nisja e kaluar në nisjen e radhës), me orën e serverit në zonën e
+  Kosovës; pas nisjes, cikli i radhës lejon kërkesë të re. Nëse kërkesa e
+  vjetër ishte pranuar, vendi i zënë kthehet para kërkimit të ri.
+- Paneli (`/panel` dhe `/panel/kerkesa`) rifreskohet automatikisht çdo 5
+  sekonda; pa lidhje pauzohet dhe nis menjëherë pas rikthimit.
 - Provat u kryen në serverin lokal kundër Neon-it real; nuk u provua në
   Vercel me dy pajisje fizike.
 
