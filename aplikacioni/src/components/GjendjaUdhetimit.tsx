@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { signIn } from "next-auth/react";
 
 // Dy ekrane, një gjendje: leximi i gjendjes nga serveri çdo 5 sekonda.
@@ -8,6 +8,7 @@ import { signIn } from "next-auth/react";
 // Në dështim mbajmë vlerat e fundit dhe paralajmërojmë "Po rilidhemi".
 
 type Statusi = "ne_pritje" | "pranuar" | "refuzuar";
+type Vendim = "pranuar" | "refuzuar";
 
 type Kerkese = {
   id: number;
@@ -29,6 +30,14 @@ type Gjendja = {
 
 const INTERVALI_MS = 5000;
 
+const karta: CSSProperties = {
+  border: "1px solid #39455b",
+  borderRadius: "12px",
+  padding: "1rem 1.25rem",
+  marginTop: "0.75rem",
+  background: "rgba(53, 72, 212, 0.08)",
+};
+
 function tekstiStatusit(s: Statusi) {
   return s === "ne_pritje" ? "Në pritje" : s === "pranuar" ? "U pranua" : "U refuzua";
 }
@@ -46,6 +55,8 @@ export function GjendjaUdhetimit({
   const [hyrje, setHyrje] = useState(false);
   const [pritje, setPritje] = useState(false);
   const [mesazhi, setMesazhi] = useState("");
+  const [njoftim, setNjoftim] = useState("");
+  const statuset = useRef<Record<number, Statusi>>({});
   const lexoRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -78,6 +89,22 @@ export function GjendjaUdhetimit({
         if (!res.ok) throw new Error("lexim");
         const data = (await res.json()) as Gjendja;
         if (!aktiv || ky !== numri) return; // përgjigje e vjetruar
+
+        // Njoftim kur përgjigjja e shoferit ndryshon gjendjen e kërkesës.
+        if (data.roli === "udhetar") {
+          for (const k of data.kerkesat) {
+            const mePare = statuset.current[k.id];
+            if (mePare === "ne_pritje" && k.status !== "ne_pritje") {
+              setNjoftim(
+                k.status === "pranuar"
+                  ? "Kërkesa u pranua nga shoferi."
+                  : "Kërkesa u refuzua nga shoferi."
+              );
+            }
+            statuset.current[k.id] = k.status;
+          }
+        }
+
         setGjendja(data);
         setHyrje(false);
         setLexuar(true);
@@ -125,7 +152,7 @@ export function GjendjaUdhetimit({
     };
   }, [idUdhetimi]);
 
-  async function prano(kerkesaId: number) {
+  async function vepro(kerkesaId: number, vendim: Vendim) {
     if (pritje || !lidhur) return;
     setPritje(true);
     setMesazhi("");
@@ -133,18 +160,18 @@ export function GjendjaUdhetimit({
       const res = await fetch(`/api/kerkesa/${kerkesaId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vendim: "pranuar" }),
+        body: JSON.stringify({ vendim }),
         cache: "no-store",
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.sukses) {
-        setMesazhi("Pranimi u ruajt");
+        setMesazhi(vendim === "pranuar" ? "Pranimi u ruajt" : "Refuzimi u ruajt");
         lexoRef.current();
       } else {
-        setMesazhi(data.gabim || "Nuk u pranua. Provo përsëri.");
+        setMesazhi(data.gabim || "Veprimi nuk u ruajt. Provo përsëri.");
       }
     } catch {
-      setMesazhi("Nuk u pranua. Provo përsëri.");
+      setMesazhi("Veprimi nuk u ruajt. Provo përsëri.");
     } finally {
       setPritje(false);
     }
@@ -154,6 +181,7 @@ export function GjendjaUdhetimit({
     if (pritje || !lidhur) return;
     setPritje(true);
     setMesazhi("");
+    setNjoftim("");
     try {
       const res = await fetch("/api/kerkesa", {
         method: "POST",
@@ -188,6 +216,18 @@ export function GjendjaUdhetimit({
   }
 
   const vende = gjendja?.udhetimi.vende ?? vendeNisje;
+  const jamShofer = gjendja?.roli === "shofer";
+  const butoniKerko = (teksti: string) => (
+    <button
+      type="button"
+      className="action"
+      onClick={kerkoVend}
+      disabled={pritje || !lidhur || vende <= 0}
+      data-testid="kerko-vend"
+    >
+      {pritje ? "Duke dërguar…" : vende > 0 ? teksti : "Nuk ka vende të lira"}
+    </button>
+  );
 
   return (
     <section style={{ marginTop: "1.5rem" }} data-testid="gjendja">
@@ -199,21 +239,12 @@ export function GjendjaUdhetimit({
 
       {gjendja === null ? (
         <p>Po lexojmë gjendjen…</p>
-      ) : gjendja.roli === "shofer" ? (
+      ) : jamShofer ? (
         gjendja.kerkesat.length === 0 ? (
           <p data-testid="pa-kerkese">Pa kërkesë · Ende pa kërkesë</p>
         ) : (
           gjendja.kerkesat.map((k) => (
-            <article
-              key={k.id}
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: "12px",
-                padding: "1rem 1.25rem",
-                marginTop: "0.75rem",
-                background: "#ffffff",
-              }}
-            >
+            <article key={k.id} style={karta}>
               <h3 style={{ margin: 0, fontSize: "0.95rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
                 Kërkesa e {k.udhetari_login}
               </h3>
@@ -221,82 +252,88 @@ export function GjendjaUdhetimit({
                 {tekstiStatusit(k.status)}
               </p>
               {k.status === "ne_pritje" ? (
-                <button
-                  type="button"
-                  className="action"
-                  onClick={() => prano(k.id)}
-                  disabled={pritje || !lidhur}
-                  data-testid={`prano-${k.id}`}
-                >
-                  {pritje ? "Duke pranuar…" : "Prano kërkesën"}
-                </button>
+                <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    className="action"
+                    onClick={() => vepro(k.id, "pranuar")}
+                    disabled={pritje || !lidhur}
+                    data-testid={`prano-${k.id}`}
+                    style={{ marginTop: 0, background: "#15803d" }}
+                  >
+                    {pritje ? "Duke procesuar…" : "Prano kërkesën"}
+                  </button>
+                  <button
+                    type="button"
+                    className="action"
+                    onClick={() => vepro(k.id, "refuzuar")}
+                    disabled={pritje || !lidhur}
+                    data-testid={`refuzo-${k.id}`}
+                    style={{
+                      marginTop: 0,
+                      background: "transparent",
+                      color: "#fca5a5",
+                      border: "1px solid #7f1d1d",
+                    }}
+                  >
+                    Refuzo
+                  </button>
+                </div>
               ) : (
-                <p style={{ margin: 0, color: "#4b5563" }}>
-                  {k.status === "pranuar" ? "Pranimi u ruajt" : "Kërkesa u refuzua"}
+                <p style={{ margin: 0, color: "#9fb0cc" }}>
+                  {k.status === "pranuar" ? "Pranimi u ruajt" : "Refuzimi u ruajt"}
                 </p>
               )}
             </article>
           ))
         )
-      ) : gjendja.kerkesat.length === 0 ? (
-        <article style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "1rem 1.25rem", marginTop: "0.75rem", background: "#ffffff" }}>
-          <h3 style={{ margin: 0, fontSize: "0.95rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-            Pa kërkesë
-          </h3>
-          <p style={{ margin: "0.5rem 0", color: "#4b5563" }}>Nuk ke kërkesë për këtë udhëtim.</p>
-          <button
-            type="button"
-            className="action"
-            onClick={kerkoVend}
-            disabled={pritje || !lidhur || vende <= 0}
-            data-testid="kerko-vend"
-          >
-            {pritje ? "Duke dërguar…" : vende > 0 ? "Kërko një vend" : "Nuk ka vende të lira"}
-          </button>
-        </article>
       ) : (
-        gjendja.kerkesat.map((k) => (
-          <article
-            key={k.id}
-            style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: "12px",
-              padding: "1rem 1.25rem",
-              marginTop: "0.75rem",
-              background: "#ffffff",
-            }}
-          >
-            <h3 style={{ margin: 0, fontSize: "0.95rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-              Kërkesa ime
-            </h3>
-            <p data-testid={`statusi-${k.id}`} style={{ fontWeight: 600, margin: "0.5rem 0" }}>
-              {tekstiStatusit(k.status)}
+        <>
+          {njoftim ? (
+            <p role="status" data-testid="njoftim" style={{ fontWeight: 600, color: "#89ddff" }}>
+              {njoftim}
             </p>
-            <p style={{ margin: 0, color: "#4b5563" }}>
-              {k.status === "ne_pritje"
-                ? "Kërkesa u dërgua"
-                : k.status === "pranuar"
-                ? "Vendi u konfirmua"
-                : "Kërkesa u refuzua"}
-            </p>
-            {k.status === "refuzuar" ? (
-              <button
-                type="button"
-                className="action"
-                onClick={kerkoVend}
-                disabled={pritje || !lidhur || vende <= 0}
-                style={{ marginTop: "0.75rem" }}
-              >
-                Provo përsëri
-              </button>
-            ) : null}
-          </article>
-        ))
+          ) : null}
+
+          {gjendja.kerkesat.length === 0 ? (
+            <article style={karta}>
+              <h3 style={{ margin: 0, fontSize: "0.95rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                Pa kërkesë
+              </h3>
+              <p style={{ margin: "0.5rem 0", color: "#9fb0cc" }}>Nuk ke kërkesë për këtë udhëtim.</p>
+              {butoniKerko("Kërko një vend")}
+            </article>
+          ) : (
+            gjendja.kerkesat.map((k) => (
+              <article key={k.id} style={karta}>
+                <h3 style={{ margin: 0, fontSize: "0.95rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  Kërkesa ime
+                </h3>
+                <p data-testid={`statusi-${k.id}`} style={{ fontWeight: 600, margin: "0.5rem 0" }}>
+                  {tekstiStatusit(k.status)}
+                </p>
+                <p style={{ margin: 0, color: "#9fb0cc" }}>
+                  {k.status === "ne_pritje"
+                    ? "Kërkesa u dërgua · në pritje të përgjigjes së shoferit"
+                    : k.status === "pranuar"
+                    ? "Vendi u konfirmua"
+                    : "Kërkesa u refuzua nga shoferi"}
+                </p>
+                {/* Butoni mbetet i dukshëm edhe pas një përgjigjeje, që kërkimi të mund të përsëritet. */}
+                {k.status !== "ne_pritje" ? (
+                  <div style={{ marginTop: "0.75rem" }}>
+                    {butoniKerko(k.status === "refuzuar" ? "Provo përsëri" : "Kërko një vend")}
+                  </div>
+                ) : null}
+              </article>
+            ))
+          )}
+        </>
       )}
 
       <p
         data-testid="statusi-leximit"
-        style={{ marginTop: "1rem", fontWeight: 600, color: lidhur ? "#166534" : "#b45309" }}
+        style={{ marginTop: "1rem", fontWeight: 600, color: lidhur ? "#7bd88f" : "#f0b429" }}
       >
         {!lidhur
           ? "Po rilidhemi · të dhënat mund të jenë të vjetra"
@@ -308,7 +345,7 @@ export function GjendjaUdhetimit({
         Përditësim automatik çdo 5 sekonda
       </p>
       {!lidhur ? (
-        <p data-testid="veprimet-bllokuara" style={{ fontSize: "0.9rem", color: "#b45309" }}>
+        <p data-testid="veprimet-bllokuara" style={{ fontSize: "0.9rem", color: "#f0b429" }}>
           Veprimet që kërkojnë rrjet janë të bllokuara
         </p>
       ) : null}

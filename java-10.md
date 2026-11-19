@@ -7,13 +7,15 @@ Projekti: https://github.com/Mendritbajrami-cmd/rideshare-mobile
 Kërkesa e udhëtarit ruhet në Neon dhe të dy ekranet (`/udhetimi/[id]`) lexojnë
 gjendjen nga serveri automatikisht çdo 5 sekonda, pa Refresh manual. I njëjti
 ekran shërben për të dy rolet: serveri e njeh rolin nga sesioni dhe nga
-pronari i udhëtimit. Shoferi sheh kërkesat e udhëtimit të vet dhe butonin
-"Prano kërkesën"; udhëtari sheh vetëm kërkesën e vet dhe butonin "Kërko një
-vend". Pranimi zbret një vend një herë, përsëritja e pranimit nuk e ul numrin
-përsëri dhe vendet nuk bëhen negative. Nëse leximi dështon, ekrani mban
-vlerat e fundit dhe shfaq "Po rilidhemi · të dhënat mund të jenë të vjetra";
-pas rikthimit lexon menjëherë dhe paralajmërimi hiqet vetëm pas një
-përgjigjeje të suksesshme.
+pronari i udhëtimit. Shoferi sheh kërkesat e udhëtimit të vet dhe butonat
+"Prano kërkesën" / "Refuzo"; udhëtari sheh vetëm kërkesën e vet, njoftimin
+kur shoferi përgjigjet ("Kërkesa u pranua nga shoferi." ose "Kërkesa u
+refuzua nga shoferi.") dhe butonin "Kërko një vend" (edhe pas një përgjigjeje,
+që kërkimi të mund të përsëritet). Pranimi zbret një vend një herë, përsëritja
+e pranimit nuk e ul numrin përsëri dhe vendet nuk bëhen negative. Nëse leximi
+dështon, ekrani mban vlerat e fundit dhe shfaq "Po rilidhemi · të dhënat mund
+të jenë të vjetra"; pas rikthimit lexon menjëherë dhe paralajmërimi hiqet
+vetëm pas një përgjigjeje të suksesshme.
 
 ## Skedarët e ndryshuar
 
@@ -81,6 +83,12 @@ vendet mbetën **0** dhe kërkesa mbeti `ne_pritje`. Udhëtari që provoi të
 pranojë kërkesën e dikujt tjetër mori `400 Vetëm shoferi pronar mund të
 përgjigjet.`; pa sesion, leximi dhe pranimi kthyen **401**.
 
+Refuzimi u provua në të njëjtin udhëtim 10: shoferi klikoi "Refuzo" dhe
+udhëtari pa "U refuzua", njoftimin "Kërkesa u refuzua nga shoferi." dhe
+butonin "Provo përsëri"; vendet mbetën 2, kërkesa u shënua `refuzuar`.
+Kërkimi i ri pas pranimit e kthen vendin (2 → 1 → 2) dhe kërkesën në
+`ne_pritje`, ndaj i njëjti çift nuk mban dy vende.
+
 ### Prova 3 — Ndërprerja dhe rilidhja
 
 Hapat: Nisa një kërkesë të re në pritje në udhëtimin 12 (2 vende). Vendosa
@@ -110,14 +118,14 @@ udhëtimeve është numri fillestar i vendeve.
 
 - Përditësimi është periodik (çdo 5 s), jo shtytje në kohë reale: vonesa
   maksimale është një interval leximi.
-- Komponenti i ri ofron vetëm pranim; refuzimi mbetet te paneli i shoferit.
 - Për demonstrim manual duhen dy sesione me identitete të ndryshme (dy
   llogari GitHub ose punë në çift); dy skeda normale ndajnë të njëjtin sesion.
 - Udhëtimet demo 1 dhe 3 kanë pronar `DEMO-SHOFER-2`; pranimi tani kërkon
   login-in e pronarit, ndaj ato pranohen vetëm me atë identitet prove. Për
   demonstrim përdoret udhëtimi 10, pronar `Mendritbajrami-cmd`.
-- Pas refuzimit, udhëtari mund të dërgojë përsëri kërkesën; ajo kthehet në
-  `ne_pritje` (gjendja e vjetër nuk ruhet si histori).
+- Pas refuzimit ose pranimit, udhëtari mund të dërgojë përsëri kërkesën; ajo
+  kthehet në `ne_pritje` (gjendja e vjetër nuk ruhet si histori) dhe, nëse
+  ishte pranuar, vendi i zënë kthehet para kërkimit të ri.
 - Provat u kryen në serverin lokal kundër Neon-it real; nuk u provua në
   Vercel me dy pajisje fizike.
 

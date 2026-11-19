@@ -37,7 +37,9 @@ export async function krijoKerkese(
         return { ok: false, arsyeja: "Ke dërguar tashmë një kërkesë për këtë udhëtim." };
       }
       if (ekziston[0].status === "pranuar") {
-        return { ok: false, arsyeja: "Kërkesa jote është pranuar tashmë." };
+        // Kërkesë e re pas një pranimi: anulo rezervimin e mëparshëm dhe kthe vendin,
+        // që i njëjti udhëtar të mos zërë dy vende me të njëjtin çift.
+        await sql`UPDATE udhetimet SET vende = vende + 1 WHERE id = ${udhetimiId}`;
       }
     }
 
